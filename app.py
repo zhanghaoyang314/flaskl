@@ -37,7 +37,7 @@ def init_database(drop):
         db.drop_all()
     db.create_all()
     click.echo('Initialized database.')  # 输出提示信息
-    
+
 @app.cli.command()
 def forge():
     """Generate fake data."""
@@ -68,11 +68,19 @@ def forge():
     db.session.commit()
     click.echo('Done.')
 
+@app.context_processor
+def inject_user():  # 函数名可以随意修改
+    user = db.session.execute(select(User)).scalar()
+    return dict(user=user)  # 需要返回字典，等同于 return {'user': user}
+
+@app.errorhandler(404)  # 传入要处理的错误代码
+def page_not_found(error):  # 接受异常对象作为参数
+    return render_template('404.html'), 404  # 返回模板和状态码
+
 @app.route('/')
 def index():
-    user = db.session.execute(select(User)).scalar()
     movies = db.session.execute(select(Movie)).scalars().all()  # 读取所有电影记录
-    return render_template('index.html', user=user, movies=movies)
+    return render_template('index.html', movies=movies)
 
 @app.route('/user/<name>')
 def user_page(name):
@@ -81,7 +89,7 @@ def user_page(name):
 @app.route('/test')
 def test_url_for():
     # 下面是一些调用示例（访问 http://localhost:5000/test 后在命令行窗口查看输出的 URL）：
-    print(url_for('hello'))  # 生成 hello 视图函数对应的 URL，将会输出：/
+    print(url_for('index'))  # 生成 hello 视图函数对应的 URL，将会输出：/
     # 注意下面两个调用是如何生成包含 URL 变量的 URL 的
     print(url_for('user_page', name='greyli'))  # 输出：/user/greyli
     print(url_for('user_page', name='peter'))  # 输出：/user/peter
